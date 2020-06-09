@@ -18,7 +18,10 @@
         "laravel": {
             "providers": [
                 "Submtd\\LaravelApiError\\Providers\\ApiErrorServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "Error": "Submtd\\LaravelApiError\\Facades\\Error"
+            }
         }
     }
 }

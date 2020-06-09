@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Submtd\LaravelApiError\Services\ErrorService
  */
-class ErrorFacade extends Facade
+class Error extends Facade
 {
     /**
      * Get facade accessor.
