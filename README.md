@@ -1,2 +1,2 @@
-# laravel-api-errors
+# Laravel Api Error
 Error handling for Laravel APIs
