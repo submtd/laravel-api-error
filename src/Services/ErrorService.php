@@ -2,9 +2,9 @@
 
 namespace Submtd\LaravelApiError\Services;
 
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
-use Submtd\LaravelApiError\Models\Error;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
 
 class ErrorService
 {
@@ -15,32 +15,80 @@ class ErrorService
     protected $errors = [];
 
     /**
-     * Add error.
-     * @param string $message
-     * @param int $code
-     * @return \Submtd\LaravelApiError\Services\ErrorService
+     * Code.
+     * @var int
      */
-    public function add(string $message, int $code = 0) : self
+    protected $code = 0;
+
+    /**
+     * Add error.
+     * @param \Throwable $exception
+     * @return self
+     */
+    public function add(Throwable $exception) : self
     {
-        $error = Error::create([
-            'user_id' => Auth::id(),
-            'uri' => request()->url(),
-            'request' => request()->all(),
-            'request_headers' => request()->headers->all(),
-            'message' => $message,
-            'code' => $code,
-        ]);
+        $this->code = (method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : $exception->getCode());
+        $error = [
+            'type' => 'error',
+            'id' => Str::uuid()->toString(),
+            'attributes' => [
+                'message' => $exception->getMessage(),
+                'code' => $this->code,
+                'uri' => request()->getUri(),
+                'method' => request()->getMethod(),
+                'client_ip' => request()->getClientIp(),
+                'request' => request()->all(),
+                'request_headers' => request()->headers->all(),
+            ],
+        ];
+        if (config('app.debug', false)) {
+            $error['related'] = [
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'previous' => $exception->getPrevious(),
+                'trace' => $exception->getTrace(),
+            ];
+        }
         $this->errors[] = $error;
+        if (config('api-error.log_errors', true)) {
+            $this->log();
+        }
 
         return $this;
     }
 
     /**
-     * Get errors.
-     * @return \Illuminate\Support\Collection
+     * Render.
+     * @return array
      */
-    public function get() : Collection
+    public function render() : array
     {
-        return new Collection($this->errors);
+        return $this->errors;
+    }
+
+    /**
+     * Code.
+     * @return int
+     */
+    public function code() : int
+    {
+        return $this->code;
+    }
+
+    /**
+     * Log.
+     * @return self
+     */
+    public function log() : self
+    {
+        $logFile = config('api-error.log_file', 'api-errors');
+        config(['logging.channels.'.$logFile => [
+            'driver' => 'single',
+            'path' => storage_path('logs/'.$logFile.'.log'),
+            'level' => 'debug',
+        ]]);
+        Log::channel($logFile)->debug(json_encode($this->render()));
+
+        return $this;
     }
 }

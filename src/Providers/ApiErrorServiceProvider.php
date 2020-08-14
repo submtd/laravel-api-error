@@ -14,33 +14,18 @@ class ApiErrorServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // error service singleton
+        // Error service singleton
         $this->app->singleton(ErrorService::class, function () {
             return new ErrorService();
         });
-        // error service facade
+        // Error service facade
         $this->app->bind('error-service', function () {
             return $this->app->make(ErrorService::class);
         });
-        // hijack exception handler
+        // Hijack exception handler
         $appExceptionHandler = $this->app->make(ExceptionHandler::class);
         $this->app->singleton(ExceptionHandler::class, function ($app) use ($appExceptionHandler) {
             return new Handler($app, $appExceptionHandler);
         });
-    }
-
-    /**
-     * Boot method.
-     */
-    public function boot()
-    {
-        // config
-        $this->mergeConfigFrom(__DIR__.'/../../config/api-error.php', 'api-error');
-        $this->publishes([__DIR__.'/../../config' => config_path()], 'config');
-        // migrations
-        $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
-        $this->publishes([__DIR__.'/../../database' => database_path()], 'migrations');
-        // routes
-        $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
     }
 }
